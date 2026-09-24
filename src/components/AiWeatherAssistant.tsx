@@ -68,8 +68,8 @@ export const AiWeatherAssistant: React.FC<AiWeatherAssistantProps> = ({
           daily,
         );
         if (isMounted) setIntelligence(data);
-      } catch (err) {
-        console.error('Failed to load weather intelligence:', err);
+      } catch (_err) {
+        // Quiet fallback handled by fetchWeatherIntelligence
       } finally {
         if (isMounted) setLoadingIntelligence(false);
       }
@@ -116,8 +116,8 @@ export const AiWeatherAssistant: React.FC<AiWeatherAssistantProps> = ({
         timestamp: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, aiMsg]);
-    } catch (e) {
-      console.error('Chat error:', e);
+    } catch (_e) {
+      // Quiet fallback
     } finally {
       setIsAnswering(false);
     }

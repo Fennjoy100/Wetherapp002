@@ -50,8 +50,8 @@ export const WeatherIntelligenceCard: React.FC<WeatherIntelligenceCardProps> = (
           daily,
         );
         if (mounted) setIntel(data);
-      } catch (e) {
-        console.error('Intelligence error:', e);
+      } catch (_e) {
+        // Quiet fallback handled by fetchWeatherIntelligence
       } finally {
         if (mounted) setLoading(false);
       }

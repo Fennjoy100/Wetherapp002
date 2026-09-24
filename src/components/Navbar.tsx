@@ -12,9 +12,17 @@ import {
   Loader2,
   Bookmark,
   Check,
+  History,
+  Trash2,
+  Navigation,
 } from 'lucide-react';
 import { LocationData, TempUnit, UserProfile } from '../types/weather.ts';
-import { searchLocations } from '../services/weatherService.ts';
+import {
+  searchWorldwideLocations,
+  getRecentSearches,
+  saveRecentSearch,
+  clearRecentSearches,
+} from '../services/geocodingService.ts';
 
 interface NavbarProps {
   currentLocation: LocationData;
@@ -49,30 +57,41 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<LocationData[]>([]);
+  const [recentSearches, setRecentSearches] = useState<LocationData[]>(() => getRecentSearches());
   const [isSearching, setIsSearching] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showFavoritesMenu, setShowFavoritesMenu] = useState(false);
 
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const favoritesMenuRef = useRef<HTMLDivElement>(null);
 
-  // Live search debouncing
+  // Refresh recent searches from storage when menu opens
+  const refreshRecentSearches = () => {
+    setRecentSearches(getRecentSearches());
+  };
+
+  // Live search debouncing for worldwide locations
   useEffect(() => {
-    if (!searchQuery.trim() || searchQuery.trim().length < 2) {
+    const q = searchQuery.trim();
+    if (!q || q.length < 2) {
       setSearchResults([]);
       setIsSearching(false);
+      setSelectedIndex(-1);
       return;
     }
 
     setIsSearching(true);
+    setSelectedIndex(-1);
     const timer = setTimeout(async () => {
       try {
-        const results = await searchLocations(searchQuery);
+        const results = await searchWorldwideLocations(q);
         setSearchResults(results);
-      } catch (e) {
-        console.error('Search error:', e);
+      } catch (_e) {
+        setSearchResults([]);
       } finally {
         setIsSearching(false);
       }
@@ -108,9 +127,43 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, []);
 
   const handleSelect = (loc: LocationData) => {
+    saveRecentSearch(loc);
+    refreshRecentSearches();
     onSelectLocation(loc);
     setSearchQuery('');
     setIsSearchOpen(false);
+    setSelectedIndex(-1);
+  };
+
+  // Keyboard navigation for search dropdown
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!isSearchOpen) return;
+
+    const items = searchQuery.trim().length >= 2 ? searchResults : recentSearches;
+    if (items.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev < items.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : items.length - 1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (selectedIndex >= 0 && selectedIndex < items.length) {
+        handleSelect(items[selectedIndex]);
+      } else if (items.length > 0) {
+        handleSelect(items[0]);
+      }
+    } else if (e.key === 'Escape') {
+      setIsSearchOpen(false);
+    }
+  };
+
+  const handleClearRecents = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    clearRecentSearches();
+    setRecentSearches([]);
   };
 
   return (
@@ -127,7 +180,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             </span>
             <span className="text-[10px] text-slate-400 block -mt-1 hidden sm:block">
-              Precision Live Forecast
+              Worldwide Telemetry Platform
             </span>
           </div>
         </div>
@@ -137,22 +190,32 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="relative flex items-center">
             <Search className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
             <input
+              ref={inputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setIsSearchOpen(true);
               }}
-              onFocus={() => setIsSearchOpen(true)}
-              placeholder="Search city, region, or coordinates..."
+              onFocus={() => {
+                refreshRecentSearches();
+                setIsSearchOpen(true);
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder="Search city, village, airport, postal code, or lat,lng..."
               className="w-full bg-slate-900/80 border border-slate-800 hover:border-slate-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl py-2 pl-9.5 pr-20 text-xs sm:text-sm text-slate-100 placeholder:text-slate-500 outline-none transition shadow-inner"
             />
             <div className="absolute right-1.5 flex items-center gap-1">
               {searchQuery && (
                 <button
                   type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="p-1 text-slate-500 hover:text-slate-300 rounded"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedIndex(-1);
+                    inputRef.current?.focus();
+                  }}
+                  className="p-1 text-slate-500 hover:text-slate-300 rounded cursor-pointer"
+                  title="Clear input"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -167,49 +230,125 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {isDetectingLocation ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
                 ) : (
-                  <MapPin className="w-3.5 h-3.5" />
+                  <Navigation className="w-3.5 h-3.5" />
                 )}
               </button>
             </div>
           </div>
 
-          {/* Autocomplete Dropdown */}
-          {isSearchOpen && (searchQuery.trim().length >= 2 || searchResults.length > 0) && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl shadow-black/80 overflow-hidden z-50 max-h-80 overflow-y-auto">
-              {isSearching ? (
-                <div className="p-4 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
-                  Searching global meteorological stations...
-                </div>
-              ) : searchResults.length > 0 ? (
-                <div className="py-1">
-                  {searchResults.map((result, idx) => (
-                    <button
-                      key={`${result.name}-${result.latitude}-${idx}`}
-                      type="button"
-                      onClick={() => handleSelect(result)}
-                      className="w-full px-4 py-2.5 text-left hover:bg-slate-800/80 flex items-center justify-between transition cursor-pointer group"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <MapPin className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition shrink-0" />
-                        <div>
-                          <div className="text-sm font-medium text-slate-200 group-hover:text-white">
-                            {result.name}
+          {/* Autocomplete & Recent Searches Dropdown */}
+          {isSearchOpen && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden z-50 max-h-96 overflow-y-auto">
+              {searchQuery.trim().length >= 2 ? (
+                /* Search Results View */
+                isSearching ? (
+                  <div className="p-4 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                    Searching global meteorological stations & geocoding...
+                  </div>
+                ) : searchResults.length > 0 ? (
+                  <div className="py-1">
+                    <div className="px-4 py-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-800/80 flex items-center justify-between">
+                      <span>Worldwide Matches ({searchResults.length})</span>
+                      <span className="text-[9px] text-slate-600">Select to view forecast</span>
+                    </div>
+                    {searchResults.map((result, idx) => {
+                      const isFocused = selectedIndex === idx;
+                      const latStr = `${Math.abs(result.latitude).toFixed(2)}°${result.latitude >= 0 ? 'N' : 'S'}`;
+                      const lonStr = `${Math.abs(result.longitude).toFixed(2)}°${result.longitude >= 0 ? 'E' : 'W'}`;
+                      return (
+                        <button
+                          key={`${result.name}-${result.latitude}-${result.longitude}-${idx}`}
+                          type="button"
+                          onClick={() => handleSelect(result)}
+                          className={`w-full px-4 py-2.5 text-left flex items-center justify-between transition cursor-pointer group ${
+                            isFocused ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/80 text-slate-200'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <MapPin className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition shrink-0" />
+                            <div className="min-w-0">
+                              <div className="text-sm font-semibold truncate text-white">
+                                {result.name}
+                              </div>
+                              <div className="text-[11px] text-slate-400 truncate">
+                                {[result.region, result.country].filter(Boolean).join(', ')}
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-[11px] text-slate-400">
-                            {[result.region, result.country].filter(Boolean).join(', ')}
+
+                          <div className="flex flex-col items-end shrink-0 pl-2">
+                            <span className="text-[10px] text-emerald-400 font-mono">
+                              {latStr}, {lonStr}
+                            </span>
+                            {result.countryCode && (
+                              <span className="text-[9px] text-slate-500 font-mono uppercase">
+                                {result.countryCode}
+                              </span>
+                            )}
                           </div>
-                        </div>
-                      </div>
-                      <span className="text-[10px] text-slate-500 font-mono">
-                        {result.countryCode || ''}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-xs text-slate-400 space-y-1">
+                    <div>No matching locations found for "{searchQuery}".</div>
+                    <div className="text-[11px] text-slate-500">
+                      Try searching by city, town, country, zip code, or latitude, longitude.
+                    </div>
+                  </div>
+                )
               ) : (
-                <div className="p-4 text-center text-xs text-slate-400">
-                  No matching locations found for "{searchQuery}".
+                /* Recent Searches View */
+                <div>
+                  <div className="px-4 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <History className="w-3.5 h-3.5 text-cyan-400" /> Recent Searches
+                    </span>
+                    {recentSearches.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleClearRecents}
+                        className="text-[10px] text-rose-400 hover:text-rose-300 transition flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3 h-3" /> Clear
+                      </button>
+                    )}
+                  </div>
+
+                  {recentSearches.length > 0 ? (
+                    <div className="py-1">
+                      {recentSearches.map((item, idx) => {
+                        const isFocused = selectedIndex === idx;
+                        return (
+                          <button
+                            key={`recent-${item.name}-${item.latitude}-${idx}`}
+                            type="button"
+                            onClick={() => handleSelect(item)}
+                            className={`w-full px-4 py-2 text-left flex items-center justify-between text-xs transition cursor-pointer ${
+                              isFocused ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/80 text-slate-300'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <History className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                              <span className="font-medium truncate">{item.name}</span>
+                              <span className="text-slate-500 text-[11px] truncate">
+                                {[item.region, item.country].filter(Boolean).join(', ')}
+                              </span>
+                            </div>
+                            <span className="text-[10px] font-mono text-slate-500 shrink-0 pl-2">
+                              {item.latitude.toFixed(1)}°, {item.longitude.toFixed(1)}°
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-xs text-slate-500">
+                      No recent searches yet. Search any city, town, airport, or coordinates above.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -225,9 +364,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             title={`Switch to ${tempUnit === 'celsius' ? 'Fahrenheit' : 'Celsius'}`}
             className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs font-semibold text-slate-300 hover:text-white transition flex items-center gap-1 cursor-pointer"
           >
-            <span className={tempUnit === 'celsius' ? 'text-cyan-400' : 'text-slate-500'}>°C</span>
+            <span className={tempUnit === 'celsius' ? 'text-cyan-400 font-bold' : 'text-slate-500'}>°C</span>
             <span className="text-slate-600">/</span>
-            <span className={tempUnit === 'fahrenheit' ? 'text-cyan-400' : 'text-slate-500'}>°F</span>
+            <span className={tempUnit === 'fahrenheit' ? 'text-cyan-400 font-bold' : 'text-slate-500'}>°F</span>
           </button>
 
           {/* Pin / Favorite Current City */}
@@ -386,7 +525,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 onClick={onOpenAuth}
-                className="px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-semibold rounded-xl shadow-md shadow-cyan-500/20 transition cursor-pointer flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-semibold shadow-md shadow-cyan-500/20 transition cursor-pointer flex items-center gap-1.5"
               >
                 <UserIcon className="w-3.5 h-3.5" />
                 <span>Sign In</span>

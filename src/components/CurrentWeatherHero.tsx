@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   MapPin,
   RefreshCw,
@@ -9,6 +9,8 @@ import {
   Sun,
   ShieldCheck,
   Calendar,
+  Clock,
+  Cloud,
 } from 'lucide-react';
 import { AirQualityData, CurrentWeather, LocationData, TempUnit } from '../types/weather.ts';
 import { formatTemp, getWeatherInterpretation } from '../services/weatherService.ts';
@@ -35,17 +37,41 @@ export const CurrentWeatherHero: React.FC<CurrentWeatherHeroProps> = ({
 }) => {
   const interp = getWeatherInterpretation(weather.weatherCode, weather.isDay);
 
-  const formattedDate = new Intl.DateTimeFormat('en-US', {
-    weekday: 'long',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date());
+  const [localTime, setLocalTime] = useState<string>('');
+  const [localDate, setLocalDate] = useState<string>('');
 
-  const formattedTime = new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  }).format(lastUpdated);
+  useEffect(() => {
+    const updateTime = () => {
+      try {
+        const now = new Date();
+        const tz = location.timezone && location.timezone !== 'auto' ? location.timezone : undefined;
+
+        const dateFmt = new Intl.DateTimeFormat('en-US', {
+          timeZone: tz,
+          weekday: 'long',
+          month: 'short',
+          day: 'numeric',
+        });
+
+        const timeFmt = new Intl.DateTimeFormat('en-US', {
+          timeZone: tz,
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        });
+
+        setLocalDate(dateFmt.format(now));
+        setLocalTime(timeFmt.format(now));
+      } catch {
+        setLocalDate(new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }));
+        setLocalTime(new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }));
+      }
+    };
+
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, [location.timezone, location.latitude, location.longitude]);
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70 backdrop-blur-2xl shadow-2xl transition-all">
@@ -90,22 +116,26 @@ export const CurrentWeatherHero: React.FC<CurrentWeatherHeroProps> = ({
           <div className="flex items-center gap-4 text-xs text-slate-400">
             <div className="flex items-center gap-1.5 font-medium">
               <Calendar className="w-3.5 h-3.5 text-slate-500" />
-              <span>{formattedDate}</span>
+              <span>{localDate || 'Today'}</span>
+            </div>
+            <span className="text-slate-700">|</span>
+            <div className="flex items-center gap-1.5 font-medium text-cyan-300">
+              <Clock className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="font-mono">{localTime || '--:--'}</span>
             </div>
             <span className="text-slate-700">|</span>
             <div className="flex items-center gap-2">
-              <span className="hidden sm:inline text-slate-500">Updated:</span>
-              <span className="font-mono text-slate-300">{formattedTime}</span>
               <button
                 type="button"
                 onClick={onRefresh}
                 disabled={isRefreshing}
-                title="Refresh Real-Time Forecast"
-                className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-cyan-400 transition cursor-pointer disabled:opacity-50"
+                title="Refresh Real-Time Telemetry"
+                className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-cyan-400 transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
               >
                 <RefreshCw
                   className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-cyan-400' : ''}`}
                 />
+                <span className="hidden sm:inline text-[11px]">Refresh</span>
               </button>
             </div>
           </div>
@@ -115,7 +145,7 @@ export const CurrentWeatherHero: React.FC<CurrentWeatherHeroProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center pt-8">
           {/* Left: Temperature & Conditions */}
           <div className="lg:col-span-7 flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-8">
-            <div className="relative">
+            <div className="relative shrink-0">
               <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-3xl bg-slate-800/40 border border-slate-700/50 flex items-center justify-center backdrop-blur-md shadow-xl">
                 <WeatherIcon
                   name={weather.iconName}
@@ -126,11 +156,14 @@ export const CurrentWeatherHero: React.FC<CurrentWeatherHeroProps> = ({
             </div>
 
             <div>
-              <div className="flex items-baseline gap-3">
-                <div className="text-6xl sm:text-7xl lg:text-8xl font-black text-white tracking-tighter drop-shadow-sm">
-                  {formatTemp(weather.temperature, tempUnit)}
+              <div className="flex items-baseline gap-2">
+                <div className="text-6xl sm:text-7xl lg:text-8xl font-black text-white tracking-tighter drop-shadow-sm flex items-baseline">
+                  <span>{formatTemp(weather.temperature, tempUnit).replace('°', '')}</span>
+                  <span className="text-3xl sm:text-4xl lg:text-5xl text-cyan-400 font-sans font-bold ml-1">
+                    °{tempUnit === 'celsius' ? 'C' : 'F'}
+                  </span>
                 </div>
-                <div className="text-slate-400 text-sm font-medium pb-2">
+                <div className="text-slate-400 text-xs sm:text-sm font-medium pb-2 pl-2">
                   Feels like{' '}
                   <span className="text-slate-200 font-semibold font-mono">
                     {formatTemp(weather.feelsLike, tempUnit)}
@@ -149,23 +182,19 @@ export const CurrentWeatherHero: React.FC<CurrentWeatherHeroProps> = ({
 
               {/* High / Low & Precipitation stats */}
               <div className="flex items-center gap-4 mt-3 text-xs">
-                <div className="flex items-center gap-1 text-rose-300 font-semibold">
+                <div className="flex items-center gap-1 text-rose-300 font-semibold" title="Today High">
                   <ArrowUp className="w-3.5 h-3.5" />
                   <span>{formatTemp(weather.tempMax, tempUnit)}</span>
                 </div>
-                <div className="flex items-center gap-1 text-sky-300 font-semibold">
+                <div className="flex items-center gap-1 text-sky-300 font-semibold" title="Today Low">
                   <ArrowDown className="w-3.5 h-3.5" />
                   <span>{formatTemp(weather.tempMin, tempUnit)}</span>
                 </div>
-                {weather.precipitationProbability > 0 && (
-                  <>
-                    <span className="text-slate-700">·</span>
-                    <div className="flex items-center gap-1 text-cyan-300">
-                      <Droplets className="w-3.5 h-3.5" />
-                      <span>{weather.precipitationProbability}% precipitation</span>
-                    </div>
-                  </>
-                )}
+                <span className="text-slate-700">·</span>
+                <div className="flex items-center gap-1 text-cyan-300" title="Precipitation Probability">
+                  <Droplets className="w-3.5 h-3.5" />
+                  <span>{weather.precipitationProbability}% chance of rain</span>
+                </div>
               </div>
             </div>
           </div>
@@ -200,23 +229,14 @@ export const CurrentWeatherHero: React.FC<CurrentWeatherHeroProps> = ({
 
             <div className="p-3.5 rounded-2xl bg-slate-950/50 border border-slate-800/80 backdrop-blur-md">
               <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
-                <span className="font-medium">UV Index</span>
-                <Sun className="w-3.5 h-3.5 text-amber-400" />
+                <span className="font-medium">Cloud Cover</span>
+                <Cloud className="w-3.5 h-3.5 text-slate-300" />
               </div>
               <div className="text-lg font-bold text-white font-mono">
-                {weather.uvIndex}{' '}
-                <span className="text-xs font-sans font-medium text-amber-300">
-                  {weather.uvIndex >= 8
-                    ? 'Very High'
-                    : weather.uvIndex >= 6
-                    ? 'High'
-                    : weather.uvIndex >= 3
-                    ? 'Moderate'
-                    : 'Low'}
-                </span>
+                {weather.cloudCover}%
               </div>
               <div className="text-[11px] text-slate-400 mt-0.5">
-                {weather.uvIndex >= 6 ? 'Sun protection needed' : 'Safe exposure'}
+                Visibility {weather.visibility} km
               </div>
             </div>
 
@@ -225,17 +245,15 @@ export const CurrentWeatherHero: React.FC<CurrentWeatherHeroProps> = ({
                 <span className="font-medium">Air Quality</span>
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               </div>
-              <div className="text-lg font-bold text-white font-mono flex items-center gap-1.5">
-                <span>{airQuality.aqi}</span>
+              <div className="text-lg font-bold text-white font-mono flex items-center gap-2">
+                <span>AQI {airQuality.aqi}</span>
                 <span
-                  className="text-xs font-sans font-semibold px-1.5 py-0.2 rounded"
-                  style={{ color: airQuality.color, backgroundColor: `${airQuality.color}20` }}
-                >
-                  {airQuality.label}
-                </span>
+                  className="w-2.5 h-2.5 rounded-full"
+                  style={{ backgroundColor: airQuality.color }}
+                />
               </div>
               <div className="text-[11px] text-slate-400 mt-0.5 truncate">
-                PM2.5: {airQuality.pollutants.pm2_5.value} μg/m³
+                {airQuality.label}
               </div>
             </div>
           </div>

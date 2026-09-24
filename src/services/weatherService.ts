@@ -539,8 +539,7 @@ export async function fetchAirQualityData(
         so2: formatPollutant(so2Val, 35, 75),
       },
     };
-  } catch (err) {
-    console.warn('Falling back to default air quality:', err);
+  } catch (_err) {
     return {
       aqi: 38,
       europeanAqi: 24,
@@ -558,66 +557,19 @@ export async function fetchAirQualityData(
   }
 }
 
-// Search locations worldwide via Open-Meteo Geocoding
+import {
+  searchWorldwideLocations,
+  reverseGeocodeLocation,
+} from './geocodingService.ts';
+
+// Search locations worldwide with coordinates and multi-tier geocoding
 export async function searchLocations(query: string): Promise<LocationData[]> {
-  if (!query || query.trim().length < 2) return [];
-
-  const url = new URL('https://geocoding-api.open-meteo.com/v1/search');
-  url.searchParams.set('name', query.trim());
-  url.searchParams.set('count', '8');
-  url.searchParams.set('language', 'en');
-  url.searchParams.set('format', 'json');
-
-  const res = await fetch(url.toString());
-  if (!res.ok) return [];
-
-  const data = await res.json();
-  if (!data.results || !Array.isArray(data.results)) return [];
-
-  return data.results.map((item: any) => ({
-    id: item.id,
-    name: item.name,
-    region: item.admin1 || item.admin2 || '',
-    country: item.country || '',
-    countryCode: item.country_code || '',
-    latitude: item.latitude,
-    longitude: item.longitude,
-    timezone: item.timezone || 'auto',
-  }));
+  return searchWorldwideLocations(query);
 }
 
-// Reverse Geocode coordinates to place name using free reverse geocoding
+// Reverse Geocode coordinates to place name using multi-tier reverse geocoding
 export async function reverseGeocode(latitude: number, longitude: number): Promise<LocationData> {
-  try {
-    const res = await fetch(
-      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`,
-    );
-    if (res.ok) {
-      const data = await res.json();
-      const cityName =
-        data.city || data.locality || data.principalSubdivision || 'Current Location';
-      return {
-        name: cityName,
-        region: data.principalSubdivision || '',
-        country: data.countryName || '',
-        countryCode: data.countryCode || '',
-        latitude,
-        longitude,
-        isCurrentLocation: true,
-      };
-    }
-  } catch (err) {
-    console.warn('Reverse geocode error, fallback to coordinates:', err);
-  }
-
-  return {
-    name: 'Current Location',
-    region: `${latitude.toFixed(2)}°, ${longitude.toFixed(2)}°`,
-    country: '',
-    latitude,
-    longitude,
-    isCurrentLocation: true,
-  };
+  return reverseGeocodeLocation(latitude, longitude);
 }
 
 // Unit formatters

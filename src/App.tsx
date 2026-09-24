@@ -6,6 +6,8 @@ import {
   MapPin,
   RefreshCw,
   Sparkles,
+  Info,
+  X,
 } from 'lucide-react';
 import {
   AirQualityData,
@@ -29,8 +31,10 @@ import {
   toggleFavoriteLocation,
   createGuestUser,
 } from './services/authService.ts';
+import { saveRecentSearch } from './services/geocodingService.ts';
 import { Navbar } from './components/Navbar.tsx';
 import { CurrentWeatherHero } from './components/CurrentWeatherHero.tsx';
+import { LocationDetailsCard } from './components/LocationDetailsCard.tsx';
 import { HourlyForecast } from './components/HourlyForecast.tsx';
 import { DailyForecast } from './components/DailyForecast.tsx';
 import { WeatherMetricsGrid } from './components/WeatherMetricsGrid.tsx';
@@ -53,7 +57,7 @@ export default function App() {
     if (stored?.savedLocations && stored.savedLocations.length > 0) {
       return stored.savedLocations[0];
     }
-    return DEFAULT_LOCATIONS[0]; // San Francisco default
+    return DEFAULT_LOCATIONS[0]; // Default location
   });
 
   const [weather, setWeather] = useState<CurrentWeather | null>(null);
@@ -65,6 +69,7 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [locationNotice, setLocationNotice] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   // Unit preferences
@@ -91,7 +96,6 @@ export default function App() {
         setAirQuality(aqiRes);
         setLastUpdated(new Date());
       } catch (err: any) {
-        console.error('Weather load error:', err);
         setErrorMessage(
           err.message || 'Unable to retrieve live forecast. Please check your connection.',
         );
@@ -103,29 +107,36 @@ export default function App() {
     [],
   );
 
-  // Auto-detect user GPS on initial load
+  // Auto-detect user GPS on initial load or on demand
   const detectLocation = useCallback(() => {
     if (!navigator.geolocation) {
+      setLocationNotice('Geolocation is not supported by your browser. Please search manually.');
       return;
     }
 
     setIsDetectingLocation(true);
+    setLocationNotice(null);
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
           const { latitude, longitude } = pos.coords;
           const detectedLoc = await reverseGeocode(latitude, longitude);
+          detectedLoc.isCurrentLocation = true;
+          saveRecentSearch(detectedLoc);
           setCurrentLocation(detectedLoc);
           loadForecast(detectedLoc);
-        } catch (e) {
-          console.warn('Geolocation reverse geocoding failed:', e);
+        } catch (_e) {
+          // Handled gracefully
         } finally {
           setIsDetectingLocation(false);
         }
       },
-      (err) => {
-        console.warn('Geolocation access declined or unavailable:', err.message);
+      (_err) => {
         setIsDetectingLocation(false);
+        setLocationNotice(
+          'Location permission was not granted. You can search any city, town, village, or coordinates in the search bar above.',
+        );
       },
       { timeout: 8000, enableHighAccuracy: true },
     );
@@ -138,7 +149,16 @@ export default function App() {
     detectLocation();
   }, []);
 
+  // Dismiss notification after 8 seconds
+  useEffect(() => {
+    if (locationNotice) {
+      const timer = setTimeout(() => setLocationNotice(null), 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [locationNotice]);
+
   const handleSelectLocation = (newLoc: LocationData) => {
+    saveRecentSearch(newLoc);
     setCurrentLocation(newLoc);
     loadForecast(newLoc);
   };
@@ -178,7 +198,6 @@ export default function App() {
     setTempUnit(loggedInUser.preferredUnit || 'celsius');
     setIsAuthOpen(false);
     if (loggedInUser.savedLocations && loggedInUser.savedLocations.length > 0) {
-      // Optional: switch to user's first saved location if current is default
       if (!currentLocation.isCurrentLocation) {
         handleSelectLocation(loggedInUser.savedLocations[0]);
       }
@@ -212,6 +231,23 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+        {/* Notice for denied geolocation */}
+        {locationNotice && (
+          <div className="p-4 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 text-cyan-200 text-xs sm:text-sm flex items-center justify-between gap-3 shadow-lg animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-center gap-2.5">
+              <Info className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span>{locationNotice}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setLocationNotice(null)}
+              className="p-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* Error notification */}
         {errorMessage && (
           <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs sm:text-sm flex items-center justify-between gap-3">
@@ -236,10 +272,11 @@ export default function App() {
               <div className="flex flex-col items-center gap-3 text-slate-400">
                 <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
                 <span className="text-xs font-medium tracking-wide">
-                  Calibrating Atmospheric Sensors...
+                  Connecting to Global Meteorological Network...
                 </span>
               </div>
             </div>
+            <div className="h-32 rounded-3xl bg-slate-900/40 border border-slate-800" />
             <div className="h-44 rounded-3xl bg-slate-900/40 border border-slate-800" />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="h-96 rounded-3xl bg-slate-900/40 border border-slate-800" />
@@ -248,7 +285,7 @@ export default function App() {
           </div>
         ) : weather && airQuality ? (
           <>
-            {/* 1. Hero Weather presentation matching WeatherFlow */}
+            {/* 1. Hero Weather presentation */}
             <CurrentWeatherHero
               weather={weather}
               location={currentLocation}
@@ -259,10 +296,13 @@ export default function App() {
               lastUpdated={lastUpdated}
             />
 
-            {/* 2. 24-Hour Hourly Forecast with trend chart */}
+            {/* 2. Location Details & Telemetry Card */}
+            <LocationDetailsCard location={currentLocation} />
+
+            {/* 3. 24-Hour Hourly Forecast with trend chart */}
             <HourlyForecast hourly={hourly} tempUnit={tempUnit} />
 
-            {/* 3. Two-Column Modular Layout */}
+            {/* 4. Two-Column Modular Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               {/* Left Column (7-Day Outlook & AI Meteorological Intelligence) */}
               <div className="lg:col-span-7 space-y-6">
@@ -277,7 +317,7 @@ export default function App() {
                 />
               </div>
 
-              {/* Right Column (Atmospheric Metrics Grid, Radar Map, Sun/Moon Arc) */}
+              {/* Right Column (Atmospheric Metrics Grid, Sun/Moon Arc, Interactive World Map) */}
               <div className="lg:col-span-5 space-y-6">
                 <WeatherMetricsGrid
                   weather={weather}
@@ -291,6 +331,7 @@ export default function App() {
                   location={currentLocation}
                   weather={weather}
                   tempUnit={tempUnit}
+                  onLocationSelect={handleSelectLocation}
                 />
               </div>
             </div>
@@ -303,14 +344,14 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span>WeatherFlow Global Telemetry Active</span>
+            <span>WeatherFlow Global Real-Time Meteorological Network</span>
             <span className="text-slate-700">·</span>
-            <span>Real-time WMO High-Resolution Models</span>
+            <span>Worldwide High-Resolution Stations</span>
           </div>
           <div className="flex items-center gap-4 text-[11px] text-slate-400">
-            <span>Open-Meteo & RainViewer APIs</span>
+            <span>Open-Meteo, RainViewer & Nominatim APIs</span>
             <span>·</span>
-            <span>Zero Config Required</span>
+            <span>Zero Mock Data</span>
           </div>
         </div>
       </footer>
