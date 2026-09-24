@@ -1,0 +1,6 @@
+{
+  "name": "WeatherFlow - Real-Time Weather Dashboard",
+  "description": "Hyper-accurate real-time weather forecasts, interactive radar, hourly & 7-day outlooks, air quality, and intelligent weather insights.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
