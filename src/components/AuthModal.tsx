@@ -14,17 +14,23 @@ import {
 } from 'lucide-react';
 import { DEMO_USERS, saveUserSession, createGuestUser } from '../services/authService.ts';
 import { UserProfile } from '../types/weather.ts';
+import {
+  BACKGROUND_IMAGES,
+  getStoredBackgroundImage,
+} from '../services/themeService.ts';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose?: () => void;
   onLoginSuccess: (user: UserProfile) => void;
+  bgImage?: string;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
   onLoginSuccess,
+  bgImage,
 }) => {
   const [tab, setTab] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
@@ -36,6 +42,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
+
+  const activeBg = bgImage || getStoredBackgroundImage();
+  const activeWallpaper = BACKGROUND_IMAGES.find((b) => b.url === activeBg);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,23 +94,44 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-md my-auto bg-slate-900/90 border border-slate-800/90 rounded-2xl shadow-2xl shadow-cyan-950/30 overflow-hidden text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-300">
+      {/* High-Clarity Fullscreen Background Wallpaper */}
+      {activeBg && activeBg !== 'none' ? (
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <img
+            src={activeBg}
+            alt="Auth Background Wallpaper"
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-cover object-center filter brightness-[0.85] contrast-[1.05] transition-all duration-700"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-slate-950/20 to-slate-950/60" />
+        </div>
+      ) : (
+        <div className="fixed inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950/60" />
+      )}
+
+      <div className="relative w-full max-w-md my-auto bg-slate-950/80 backdrop-blur-2xl border border-white/20 rounded-3xl shadow-2xl shadow-black/80 overflow-hidden text-slate-100 z-10 pointer-events-auto">
         {/* Glow ambient header */}
         <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-44 bg-gradient-to-r from-cyan-500/20 via-blue-600/20 to-indigo-600/20 blur-3xl pointer-events-none" />
 
         <div className="p-6 sm:p-8">
           {/* Brand header */}
           <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/25 mb-3">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/25 mb-3 border border-white/10">
               <Compass className="w-6 h-6 text-white animate-pulse" />
             </div>
-            <h2 className="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
-              WeatherFlow
+            <h2 className="text-xl font-bold tracking-tight text-white flex items-center justify-center gap-2 text-center">
+              Weatherwise -weather forcasting application
             </h2>
             <p className="text-xs text-slate-400 mt-1">
               Precision Atmospheric Dashboard & Predictive Insights
             </p>
+            {activeWallpaper && activeWallpaper.url !== 'none' && (
+              <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-900/80 border border-white/10 text-cyan-300">
+                <Sparkles className="w-3 h-3 text-cyan-400" />
+                <span>Wallpaper: {activeWallpaper.name}</span>
+              </div>
+            )}
           </div>
 
           {/* Tab selector */}

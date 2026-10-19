@@ -9,6 +9,134 @@
   }
 }
 
+/* CSS Theme Variables (Defaults to Electric Cyan) */
+:root {
+  --accent-primary: #06b6d4;
+  --accent-secondary: #0284c7;
+  --accent-light: #67e8f9;
+  --accent-dark: #0e7490;
+  --accent-glow: rgba(6, 182, 212, 0.35);
+}
+
+/* 10 Curated Theme Color Palettes */
+[data-theme-color="cyan"] {
+  --accent-primary: #06b6d4;
+  --accent-secondary: #0284c7;
+  --accent-light: #67e8f9;
+  --accent-dark: #0e7490;
+  --accent-glow: rgba(6, 182, 212, 0.35);
+}
+[data-theme-color="blue"] {
+  --accent-primary: #3b82f6;
+  --accent-secondary: #1d4ed8;
+  --accent-light: #93c5fd;
+  --accent-dark: #1d4ed8;
+  --accent-glow: rgba(59, 130, 246, 0.35);
+}
+[data-theme-color="emerald"] {
+  --accent-primary: #10b981;
+  --accent-secondary: #047857;
+  --accent-light: #6ee7b7;
+  --accent-dark: #047857;
+  --accent-glow: rgba(16, 185, 129, 0.35);
+}
+[data-theme-color="violet"] {
+  --accent-primary: #8b5cf6;
+  --accent-secondary: #6d28d9;
+  --accent-light: #c4b5fd;
+  --accent-dark: #6d28d9;
+  --accent-glow: rgba(139, 92, 246, 0.35);
+}
+[data-theme-color="amber"] {
+  --accent-primary: #f59e0b;
+  --accent-secondary: #b45309;
+  --accent-light: #fcd34d;
+  --accent-dark: #b45309;
+  --accent-glow: rgba(245, 158, 11, 0.35);
+}
+[data-theme-color="rose"] {
+  --accent-primary: #f43f5e;
+  --accent-secondary: #be123c;
+  --accent-light: #fda4af;
+  --accent-dark: #be123c;
+  --accent-glow: rgba(244, 63, 94, 0.35);
+}
+[data-theme-color="orange"] {
+  --accent-primary: #f97316;
+  --accent-secondary: #c2410c;
+  --accent-light: #fdba74;
+  --accent-dark: #c2410c;
+  --accent-glow: rgba(249, 115, 22, 0.35);
+}
+[data-theme-color="teal"] {
+  --accent-primary: #14b8a6;
+  --accent-secondary: #0f766e;
+  --accent-light: #5eead4;
+  --accent-dark: #0f766e;
+  --accent-glow: rgba(20, 184, 166, 0.35);
+}
+[data-theme-color="fuchsia"] {
+  --accent-primary: #d946ef;
+  --accent-secondary: #a21caf;
+  --accent-light: #f0abfc;
+  --accent-dark: #a21caf;
+  --accent-glow: rgba(217, 70, 239, 0.35);
+}
+[data-theme-color="indigo"] {
+  --accent-primary: #6366f1;
+  --accent-secondary: #4338ca;
+  --accent-light: #a5b4fc;
+  --accent-dark: #4338ca;
+  --accent-glow: rgba(99, 102, 241, 0.35);
+}
+
+/* Dynamic Accent Color Integration */
+[data-theme-color] .text-cyan-400,
+[data-theme-color] .text-cyan-300,
+[data-theme-color] .text-cyan-200 {
+  color: var(--accent-light) !important;
+}
+html.light[data-theme-color] .text-cyan-400,
+html.light[data-theme-color] .text-cyan-300 {
+  color: var(--accent-dark) !important;
+}
+[data-theme-color] .text-cyan-500 {
+  color: var(--accent-primary) !important;
+}
+[data-theme-color] .bg-cyan-500 {
+  background-color: var(--accent-primary) !important;
+}
+[data-theme-color] .bg-cyan-500\/10,
+[data-theme-color] .bg-cyan-500\/15,
+[data-theme-color] .bg-cyan-500\/20,
+[data-theme-color] .bg-cyan-950\/40,
+[data-theme-color] .bg-cyan-950\/60 {
+  background-color: var(--accent-glow) !important;
+}
+[data-theme-color] .border-cyan-500,
+[data-theme-color] .border-cyan-500\/50,
+[data-theme-color] .border-cyan-500\/40,
+[data-theme-color] .border-cyan-500\/30,
+[data-theme-color] .border-cyan-900\/60 {
+  border-color: var(--accent-primary) !important;
+}
+[data-theme-color] .from-cyan-500 {
+  --tw-gradient-from: var(--accent-primary) !important;
+  --tw-gradient-to: var(--accent-secondary) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+[data-theme-color] .to-blue-600 {
+  --tw-gradient-to: var(--accent-secondary) !important;
+}
+[data-theme-color] .shadow-cyan-500\/20,
+[data-theme-color] .shadow-cyan-500\/25,
+[data-theme-color] .shadow-cyan-950\/60 {
+  box-shadow: 0 10px 25px -5px var(--accent-glow) !important;
+}
+[data-theme-color] .selection\:bg-cyan-500\/30::selection {
+  background-color: var(--accent-glow) !important;
+}
+
 /* Custom smooth scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
@@ -34,4 +162,128 @@
 }
 .dark-map-tiles .leaflet-tile {
   filter: brightness(0.65) invert(1) contrast(2.2) hue-rotate(200deg) saturate(0.3);
+}
+
+/* =========================================================================
+   Light Mode Theme Rules (When html.light or [data-theme-mode="light"])
+   ========================================================================= */
+html.light {
+  color-scheme: light;
+}
+
+html.light body {
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+html.light .bg-slate-950 {
+  background-color: #f8fafc !important;
+}
+
+html.light .bg-slate-950\/80,
+html.light .bg-slate-950\/90 {
+  background-color: rgba(248, 250, 252, 0.95) !important;
+}
+
+html.light .bg-slate-900,
+html.light .bg-slate-900\/70,
+html.light .bg-slate-900\/80,
+html.light .bg-slate-900\/90,
+html.light .bg-slate-900\/95,
+html.light .bg-slate-900\/40,
+html.light .bg-slate-900\/50,
+html.light .bg-slate-900\/60 {
+  background-color: #ffffff !important;
+}
+
+html.light .bg-slate-800,
+html.light .bg-slate-800\/80,
+html.light .bg-slate-800\/60,
+html.light .bg-slate-800\/40,
+html.light .bg-slate-800\/90 {
+  background-color: #f1f5f9 !important;
+}
+
+html.light .hover\:bg-slate-800:hover,
+html.light .hover\:bg-slate-800\/80:hover {
+  background-color: #e2e8f0 !important;
+}
+
+html.light .border-slate-800,
+html.light .border-slate-800\/80,
+html.light .border-slate-800\/60,
+html.light .border-slate-750,
+html.light .border-slate-700,
+html.light .border-slate-700\/60 {
+  border-color: #e2e8f0 !important;
+}
+
+/* Light mode text contrast */
+html.light .text-white {
+  color: #0f172a !important;
+}
+html.light .text-slate-100 {
+  color: #0f172a !important;
+}
+html.light .text-slate-200 {
+  color: #1e293b !important;
+}
+html.light .text-slate-300 {
+  color: #334155 !important;
+}
+html.light .text-slate-400 {
+  color: #64748b !important;
+}
+html.light .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Ensure buttons with solid gradient or accent backgrounds keep crisp white text */
+html.light .from-cyan-500,
+html.light [class*="bg-gradient-to"] {
+  color: #ffffff !important;
+}
+html.light [class*="bg-gradient-to"] * {
+  color: #ffffff !important;
+}
+html.light .preserve-white,
+html.light .preserve-white * {
+  color: #ffffff !important;
+}
+
+/* Light mode header and footer */
+html.light header {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.05) !important;
+}
+
+html.light footer {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Light mode map styling */
+html.light .leaflet-container {
+  background-color: #e2e8f0 !important;
+}
+html.light .dark-map-tiles .leaflet-tile {
+  filter: none !important;
+}
+
+/* Light mode cards shadow */
+html.light .shadow-2xl,
+html.light .shadow-xl {
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Light mode scrollbar */
+html.light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
