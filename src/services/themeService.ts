@@ -1,5 +1,13 @@
-// Theme, Color, and Background Wallpaper Preference Service for Weatherise
-// Supports Dark / Light mode, 10 curated accent colors, and atmospheric background scenery.
+// Theme, Color, and Background Wallpaper Preference Service for Weatherwise
+// Supports Dark / Light mode, 10 curated accent colors, and production-bundled atmospheric background scenery.
+
+import bgAurora from '../assets/images/bg_aurora_night_1792387221303.jpg';
+import bgSunset from '../assets/images/bg_sunset_clouds_1792387238520.jpg';
+import bgMountains from '../assets/images/bg_misty_mountains_1792387255493.jpg';
+import bgRainyCity from '../assets/images/bg_rainy_cityscape_1792387270583.jpg';
+import bgGalaxy from '../assets/images/bg_starry_galaxy_1792387285895.jpg';
+
+export { bgAurora, bgSunset, bgMountains, bgRainyCity, bgGalaxy };
 
 export type ThemeMode = 'dark' | 'light';
 
@@ -30,7 +38,7 @@ export const THEME_COLORS: ThemeColorOption[] = [
   {
     id: 'cyan',
     name: 'Electric Cyan',
-    tagline: 'Iconic Weatherise sky & polar atmosphere',
+    tagline: 'Iconic Weatherwise sky & polar atmosphere',
     primary: '#06b6d4',
     secondary: '#0284c7',
     light: '#67e8f9',
@@ -44,7 +52,7 @@ export const THEME_COLORS: ThemeColorOption[] = [
   {
     id: 'blue',
     name: 'Sapphire Blue',
-    tagline: 'Deep oceanic troposphere & high altitude',
+    tagline: 'Oceanic deep atmospheric pressure system',
     primary: '#3b82f6',
     secondary: '#1d4ed8',
     light: '#93c5fd',
@@ -169,41 +177,50 @@ export const THEME_COLORS: ThemeColorOption[] = [
   },
 ];
 
-// Best high-resolution generated background wallpaper images
+export const WALLPAPER_MAP: Record<string, string> = {
+  aurora: bgAurora,
+  sunset: bgSunset,
+  mountains: bgMountains,
+  rainy_city: bgRainyCity,
+  galaxy: bgGalaxy,
+  none: 'none',
+};
+
+// Best high-resolution production-bundled background wallpaper images
 export const BACKGROUND_IMAGES: BackgroundImageOption[] = [
   {
     id: 'aurora',
     name: 'Northern Aurora & Snowy Peaks',
     subtitle: 'Emerald swirling polar lights over Arctic alpine peaks',
-    url: '/src/assets/images/bg_aurora_night_1792387221303.jpg',
+    url: bgAurora,
     tag: 'Recommended',
   },
   {
     id: 'sunset',
     name: 'Golden Sunset Cloudscape',
     subtitle: 'Warm golden sunrays piercing towering cumulus clouds',
-    url: '/src/assets/images/bg_sunset_clouds_1792387238520.jpg',
+    url: bgSunset,
     tag: 'Dramatic',
   },
   {
     id: 'mountains',
     name: 'Misty Alpine Valley',
     subtitle: 'Morning fog rolling through evergreen pines and mountain peaks',
-    url: '/src/assets/images/bg_misty_mountains_1792387255493.jpg',
+    url: bgMountains,
     tag: 'Serene',
   },
   {
     id: 'rainy_city',
     name: 'Neon Rain & Cyber City',
     subtitle: 'Cinematic rainy evening streets with colorful neon reflections',
-    url: '/src/assets/images/bg_rainy_cityscape_1792387270583.jpg',
+    url: bgRainyCity,
     tag: 'Cyberpunk',
   },
   {
     id: 'galaxy',
     name: 'Cosmic Andromeda Galaxy',
     subtitle: 'Deep starry interstellar nebula with glowing cosmic stardust',
-    url: '/src/assets/images/bg_starry_galaxy_1792387285895.jpg',
+    url: bgGalaxy,
     tag: 'Cosmic',
   },
   {
@@ -221,6 +238,34 @@ const STORAGE_KEYS = {
   BACKGROUND_IMAGE: 'weatherise_bg_image',
   BACKGROUND_OPACITY: 'weatherise_bg_opacity',
 };
+
+/**
+ * Resolves any wallpaper identifier or legacy URL into a valid, bundled production asset URL.
+ * Automatically fixes old unbundled `/src/assets/...` paths previously saved in users' localStorage.
+ */
+export function resolveWallpaperUrl(rawUrl?: string | null): string {
+  if (!rawUrl || rawUrl === 'none') return 'none';
+
+  // Check direct key match in map
+  if (WALLPAPER_MAP[rawUrl]) {
+    return WALLPAPER_MAP[rawUrl];
+  }
+
+  // Check matching by substring or file keyword
+  const lower = rawUrl.toLowerCase();
+  if (lower.includes('aurora')) return bgAurora;
+  if (lower.includes('sunset')) return bgSunset;
+  if (lower.includes('mountain') || lower.includes('misty')) return bgMountains;
+  if (lower.includes('rainy') || lower.includes('city')) return bgRainyCity;
+  if (lower.includes('galaxy') || lower.includes('starry') || lower.includes('cosmos')) return bgGalaxy;
+
+  // If it's an old dev path like /src/assets/images/...
+  if (rawUrl.startsWith('/src/')) {
+    return bgAurora;
+  }
+
+  return rawUrl;
+}
 
 // Retrieve saved theme mode ('dark' default)
 export function getStoredThemeMode(): ThemeMode {
@@ -248,15 +293,22 @@ export function getStoredThemeColor(): string {
   return 'cyan';
 }
 
-// Retrieve saved background image (defaults to Aurora image)
+// Retrieve saved background image (defaults to Aurora bundled image and migrates stale paths)
 export function getStoredBackgroundImage(): string {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.BACKGROUND_IMAGE);
-    if (saved) return saved;
+    if (saved) {
+      const resolved = resolveWallpaperUrl(saved);
+      // If the saved value was an old /src/... path, silently migrate it in localStorage
+      if (saved.startsWith('/src/')) {
+        saveBackgroundImage(resolved);
+      }
+      return resolved;
+    }
   } catch {
     // ignore
   }
-  return '/src/assets/images/bg_aurora_night_1792387221303.jpg';
+  return bgAurora;
 }
 
 // Retrieve background opacity (defaults to 0.70)
@@ -348,13 +400,13 @@ export function applyTheme(mode: ThemeMode, colorId: string): void {
 export function resetTheme(): { mode: ThemeMode; colorId: string; bgImage: string; bgOpacity: number } {
   saveThemeMode('dark');
   saveThemeColor('cyan');
-  saveBackgroundImage('/src/assets/images/bg_aurora_night_1792387221303.jpg');
+  saveBackgroundImage(bgAurora);
   saveBackgroundOpacity(0.70);
   applyTheme('dark', 'cyan');
   return {
     mode: 'dark',
     colorId: 'cyan',
-    bgImage: '/src/assets/images/bg_aurora_night_1792387221303.jpg',
+    bgImage: bgAurora,
     bgOpacity: 0.70,
   };
 }

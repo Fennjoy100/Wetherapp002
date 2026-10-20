@@ -17,6 +17,7 @@ import {
   BACKGROUND_IMAGES,
   getStoredBackgroundImage,
   saveBackgroundImage,
+  resolveWallpaperUrl,
   ThemeMode,
 } from '../services/themeService.ts';
 
@@ -53,9 +54,11 @@ export const DemoLoginModal: React.FC<DemoLoginModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Sync selected background when prop changes
-  const activeBg = bgImage || selectedBg;
-  const activeWallpaperObj = BACKGROUND_IMAGES.find((b) => b.url === activeBg) || BACKGROUND_IMAGES[0];
+  // Sync and resolve selected background for production builds (Vercel)
+  const activeBg = resolveWallpaperUrl(bgImage || selectedBg);
+  const activeWallpaperObj =
+    BACKGROUND_IMAGES.find((b) => b.url === activeBg || b.id === (bgImage || selectedBg)) ||
+    BACKGROUND_IMAGES[0];
 
   const handleSelectBackground = (url: string) => {
     setSelectedBg(url);
@@ -125,6 +128,12 @@ export const DemoLoginModal: React.FC<DemoLoginModalProps> = ({
           <img
             src={activeBg}
             alt="Login Background Wallpaper"
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (!target.src.includes('bg_aurora')) {
+                target.src = '/images/bg_aurora.jpg';
+              }
+            }}
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover object-center filter brightness-[0.85] contrast-[1.05] scale-100 transition-all duration-700"
           />
@@ -170,6 +179,12 @@ export const DemoLoginModal: React.FC<DemoLoginModalProps> = ({
             <img
               src={activeBg}
               alt="Active Wallpaper Preview"
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (!target.src.includes('bg_aurora')) {
+                  target.src = '/images/bg_aurora.jpg';
+                }
+              }}
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover object-center transform group-hover:scale-105 transition-transform duration-700 filter brightness-[0.92]"
             />

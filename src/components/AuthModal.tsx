@@ -17,6 +17,7 @@ import { UserProfile } from '../types/weather.ts';
 import {
   BACKGROUND_IMAGES,
   getStoredBackgroundImage,
+  resolveWallpaperUrl,
 } from '../services/themeService.ts';
 
 interface AuthModalProps {
@@ -43,7 +44,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
-  const activeBg = bgImage || getStoredBackgroundImage();
+  const activeBg = resolveWallpaperUrl(bgImage || getStoredBackgroundImage());
   const activeWallpaper = BACKGROUND_IMAGES.find((b) => b.url === activeBg);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -101,6 +102,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <img
             src={activeBg}
             alt="Auth Background Wallpaper"
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (!target.src.includes('bg_aurora')) {
+                target.src = '/images/bg_aurora.jpg';
+              }
+            }}
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover object-center filter brightness-[0.85] contrast-[1.05] transition-all duration-700"
           />

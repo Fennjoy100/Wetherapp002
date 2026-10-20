@@ -28,6 +28,7 @@ import {
   saveThemeMode,
   saveBackgroundImage,
   saveBackgroundOpacity,
+  resolveWallpaperUrl,
   resetTheme,
 } from '../services/themeService.ts';
 import { TempUnit } from '../types/weather.ts';
@@ -214,7 +215,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         {/* Wallpaper Image Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {BACKGROUND_IMAGES.map((bg) => {
-            const isSelected = currentBgImage === bg.url;
+            const isSelected =
+              resolveWallpaperUrl(currentBgImage) === resolveWallpaperUrl(bg.url) ||
+              currentBgImage === bg.id;
             return (
               <button
                 key={bg.id}
@@ -232,6 +235,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                     <img
                       src={bg.url}
                       alt={bg.name}
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        if (!target.src.includes('bg_aurora')) {
+                          target.src = '/images/bg_aurora.jpg';
+                        }
+                      }}
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />

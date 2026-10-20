@@ -50,6 +50,7 @@ import {
   getStoredBackgroundOpacity,
   saveBackgroundImage,
   saveBackgroundOpacity,
+  resolveWallpaperUrl,
 } from './services/themeService.ts';
 import { saveRecentSearch } from './services/geocodingService.ts';
 import { Navbar } from './components/Navbar.tsx';
@@ -315,8 +316,14 @@ export default function App() {
       {bgImage && bgImage !== 'none' && (
         <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden transition-all duration-700">
           <img
-            src={bgImage}
-            alt="Weatherise Atmospheric Wallpaper"
+            src={resolveWallpaperUrl(bgImage)}
+            alt="Weatherwise Atmospheric Wallpaper"
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (!target.src.includes('bg_aurora')) {
+                target.src = '/images/bg_aurora.jpg';
+              }
+            }}
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover object-center transform scale-105 transition-transform duration-1000"
           />
