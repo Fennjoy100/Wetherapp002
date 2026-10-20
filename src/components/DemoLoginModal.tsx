@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  User as UserIcon,
+  Mail,
   X,
   LogIn,
   Sparkles,
@@ -38,7 +38,7 @@ export const DemoLoginModal: React.FC<DemoLoginModalProps> = ({
   onBgImageChange,
   themeMode = 'dark',
 }) => {
-  const [name, setName] = useState('');
+  const [gmail, setGmail] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBg, setSelectedBg] = useState<string>(() => bgImage || getStoredBackgroundImage());
@@ -48,8 +48,8 @@ export const DemoLoginModal: React.FC<DemoLoginModalProps> = ({
     message: string;
   }>({
     isOpen: false,
-    title: 'Invalid Name',
-    message: 'Please enter a valid name, not a number.',
+    title: 'Invalid Gmail',
+    message: 'Please enter a valid Gmail, not a number.',
   });
 
   if (!isOpen) return null;
@@ -70,35 +70,24 @@ export const DemoLoginModal: React.FC<DemoLoginModalProps> = ({
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const trimmed = name.trim();
+    const trimmed = gmail.trim();
 
     // Empty validation
     if (!trimmed) {
-      setErrorMessage('Please enter your name to log in.');
+      setErrorMessage('Please enter your Gmail to log in.');
       return;
     }
 
-    // Number validation: Check if user entered numbers
+    // Number validation: Check if user entered numbers only
     const isPureNumber =
-      /^\d+$/.test(trimmed.replace(/[\s.,\-_]/g, '')) || !isNaN(Number(trimmed));
+      /^\d+$/.test(trimmed.replace(/[\s.,\-_@]/g, '')) || !isNaN(Number(trimmed));
 
     if (isPureNumber) {
-      const msg = 'Please enter a valid name, not a number.';
+      const msg = 'Please enter a valid Gmail, not a number.';
       setErrorMessage(msg);
       setErrorModal({
         isOpen: true,
-        title: 'Invalid Name',
-        message: msg,
-      });
-      return;
-    }
-
-    if (/\d/.test(trimmed)) {
-      const msg = 'Names cannot contain numbers. Please enter a valid name.';
-      setErrorMessage(msg);
-      setErrorModal({
-        isOpen: true,
-        title: 'Invalid Name',
+        title: 'Invalid Gmail',
         message: msg,
       });
       return;
@@ -110,13 +99,13 @@ export const DemoLoginModal: React.FC<DemoLoginModalProps> = ({
     setTimeout(() => {
       const user = recordDemoLogin(trimmed);
       setIsSubmitting(false);
-      setName('');
+      setGmail('');
       onLoginSuccess(user);
     }, 250);
   };
 
-  const handleQuickSelect = (presetName: string) => {
-    setName(presetName);
+  const handleQuickSelect = (presetGmail: string) => {
+    setGmail(presetGmail);
     setErrorMessage(null);
   };
 
@@ -231,19 +220,19 @@ export const DemoLoginModal: React.FC<DemoLoginModalProps> = ({
           {/* Modal Title & Brand Subtitle */}
           <div className="flex items-center gap-3.5">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/25 shrink-0 border border-white/10">
-              <UserIcon className="w-5 h-5 text-white" />
+              <Mail className="w-5 h-5 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 id="demo-login-title" className="text-lg sm:text-xl font-bold tracking-tight text-white">
-                  Demo Login
+                <h2 id="demo-login-title" className="text-base sm:text-lg font-bold tracking-tight text-white leading-snug">
+                  Weatherwise -weather forcasting application
                 </h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center gap-1 shrink-0">
                   <GraduationCap className="w-3 h-3" /> College Demo
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Enter your name to simulate login and access the demo dashboard.
+                Enter your Gmail to sign in and access the weather dashboard.
               </p>
             </div>
           </div>
@@ -298,21 +287,21 @@ export const DemoLoginModal: React.FC<DemoLoginModalProps> = ({
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="demo-name-input" className="block text-xs font-semibold text-slate-200 mb-1.5">
-                Your Name <span className="text-rose-400">*</span>
+              <label htmlFor="demo-gmail-input" className="block text-xs font-semibold text-slate-200 mb-1.5">
+                Your Gmail <span className="text-rose-400">*</span>
               </label>
               <div className="relative">
-                <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
-                  id="demo-name-input"
+                  id="demo-gmail-input"
                   type="text"
                   autoFocus
-                  value={name}
+                  value={gmail}
                   onChange={(e) => {
-                    setName(e.target.value);
+                    setGmail(e.target.value);
                     if (errorMessage) setErrorMessage(null);
                   }}
-                  placeholder="Enter your name"
+                  placeholder="Enter your Gmail"
                   className={`w-full bg-slate-950/85 border rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 placeholder:text-slate-400 outline-none transition backdrop-blur-sm ${
                     errorMessage
                       ? 'border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
@@ -337,13 +326,13 @@ export const DemoLoginModal: React.FC<DemoLoginModalProps> = ({
                 <span className="text-[10px] text-cyan-400">Click to fill</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {['Teacher', 'Student', 'Evaluator', 'Demo User'].map((preset) => (
+                {['demo.user@gmail.com', 'student@gmail.com', 'evaluator@gmail.com', 'teacher@gmail.com'].map((preset) => (
                   <button
                     key={preset}
                     type="button"
                     onClick={() => handleQuickSelect(preset)}
                     className={`px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer border ${
-                      name === preset
+                      gmail === preset
                         ? 'bg-cyan-500/25 border-cyan-400 text-cyan-200 shadow-sm'
                         : 'bg-slate-900/80 border-white/10 text-slate-300 hover:bg-slate-800 hover:border-white/20 hover:text-white'
                     }`}
@@ -360,7 +349,7 @@ export const DemoLoginModal: React.FC<DemoLoginModalProps> = ({
                 <span>Simulated Frontend Login</span>
               </div>
               <p>
-                No password or database required. Your name will be remembered in localStorage and displayed across the app and Admin Dashboard.
+                No password required. Your Gmail will be remembered in localStorage and displayed across the app and Admin Dashboard.
               </p>
             </div>
 

@@ -98,7 +98,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleDashboardQuickLogin = (name: string) => {
     const trimmed = name.trim();
     if (!trimmed) {
-      setNotice('Please enter your name to log in.');
+      setNotice('Please enter your Gmail to log in.');
       setTimeout(() => setNotice(null), 3500);
       return;
     }
@@ -259,7 +259,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               autoFocus
               value={quickLoginName}
               onChange={(e) => setQuickLoginName(e.target.value)}
-              placeholder="Enter your name"
+              placeholder="Enter your Gmail"
               className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-500 outline-none focus:border-cyan-500 w-64"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleDashboardQuickLogin(quickLoginName);
@@ -274,7 +274,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
             <div className="flex items-center gap-1 text-[11px] text-slate-400 pl-2">
               <span>Or click preset:</span>
-              {['Teacher', 'Student', 'Demo user'].map((p) => (
+              {['student@gmail.com', 'evaluator@gmail.com', 'demo.user@gmail.com'].map((p) => (
                 <button
                   key={p}
                   type="button"

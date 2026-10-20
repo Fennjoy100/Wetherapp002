@@ -137,7 +137,9 @@ export function recordDemoLogin(userName: string): UserProfile {
   const profile: UserProfile = {
     id: `demo-${Date.now()}`,
     name: cleanName,
-    email: `${cleanName.toLowerCase().replace(/\s+/g, '')}@weatherise.demo`,
+    email: cleanName.includes('@')
+      ? cleanName
+      : `${cleanName.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
     avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanName)}`,
     preferredUnit: 'celsius',
     preferredWindUnit: 'kmh',
