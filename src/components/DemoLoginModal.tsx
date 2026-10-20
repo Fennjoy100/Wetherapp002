@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import {
   Mail,
+  Lock,
+  Eye,
+  EyeOff,
   X,
   LogIn,
   Sparkles,
@@ -9,6 +12,7 @@ import {
   Image as ImageIcon,
   Compass,
   Check,
+  ShieldCheck,
 } from 'lucide-react';
 import { recordDemoLogin } from '../services/demoAdminService.ts';
 import { UserProfile } from '../types/weather.ts';
@@ -30,6 +34,13 @@ interface DemoLoginModalProps {
   themeMode?: ThemeMode;
 }
 
+const PRESET_ACCOUNTS = [
+  { gmail: 'demo.user@gmail.com', pass: 'demo1234', role: 'Demo User' },
+  { gmail: 'student@gmail.com', pass: 'student2026', role: 'Student' },
+  { gmail: 'evaluator@gmail.com', pass: 'evaluator123', role: 'Evaluator' },
+  { gmail: 'teacher@gmail.com', pass: 'teacher2026', role: 'Teacher' },
+];
+
 export const DemoLoginModal: React.FC<DemoLoginModalProps> = ({
   isOpen,
   onClose,
@@ -39,6 +50,9 @@ export const DemoLoginModal: React.FC<DemoLoginModalProps> = ({
   themeMode = 'dark',
 }) => {
   const [gmail, setGmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBg, setSelectedBg] = useState<string>(() => bgImage || getStoredBackgroundImage());
@@ -70,17 +84,18 @@ export const DemoLoginModal: React.FC<DemoLoginModalProps> = ({
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const trimmed = gmail.trim();
+    const trimmedGmail = gmail.trim();
+    const trimmedPassword = password.trim();
 
-    // Empty validation
-    if (!trimmed) {
+    // Empty Gmail validation
+    if (!trimmedGmail) {
       setErrorMessage('Please enter your Gmail to log in.');
       return;
     }
 
-    // Number validation: Check if user entered numbers only
+    // Number validation: Check if user entered numbers only in Gmail
     const isPureNumber =
-      /^\d+$/.test(trimmed.replace(/[\s.,\-_@]/g, '')) || !isNaN(Number(trimmed));
+      /^\d+$/.test(trimmedGmail.replace(/[\s.,\-_@]/g, '')) || !isNaN(Number(trimmedGmail));
 
     if (isPureNumber) {
       const msg = 'Please enter a valid Gmail, not a number.';
@@ -93,19 +108,32 @@ export const DemoLoginModal: React.FC<DemoLoginModalProps> = ({
       return;
     }
 
+    // Password validation
+    if (!trimmedPassword) {
+      setErrorMessage('Please enter your password.');
+      return;
+    }
+
+    if (trimmedPassword.length < 4) {
+      setErrorMessage('Password must be at least 4 characters.');
+      return;
+    }
+
     setErrorMessage(null);
     setIsSubmitting(true);
 
     setTimeout(() => {
-      const user = recordDemoLogin(trimmed);
+      const user = recordDemoLogin(trimmedGmail);
       setIsSubmitting(false);
       setGmail('');
+      setPassword('');
       onLoginSuccess(user);
     }, 250);
   };
 
-  const handleQuickSelect = (presetGmail: string) => {
+  const handleQuickSelect = (presetGmail: string, presetPass = 'demo1234') => {
     setGmail(presetGmail);
+    setPassword(presetPass);
     setErrorMessage(null);
   };
 
@@ -232,7 +260,7 @@ export const DemoLoginModal: React.FC<DemoLoginModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Enter your Gmail to sign in and access the weather dashboard.
+                Enter your Gmail and password to sign in and access the weather dashboard.
               </p>
             </div>
           </div>
@@ -285,7 +313,8 @@ export const DemoLoginModal: React.FC<DemoLoginModalProps> = ({
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3.5">
+            {/* Gmail Input Field */}
             <div>
               <label htmlFor="demo-gmail-input" className="block text-xs font-semibold text-slate-200 mb-1.5">
                 Your Gmail <span className="text-rose-400">*</span>
@@ -303,53 +332,120 @@ export const DemoLoginModal: React.FC<DemoLoginModalProps> = ({
                   }}
                   placeholder="Enter your Gmail"
                   className={`w-full bg-slate-950/85 border rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 placeholder:text-slate-400 outline-none transition backdrop-blur-sm ${
-                    errorMessage
+                    errorMessage && !gmail.trim()
                       ? 'border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
                       : 'border-white/15 hover:border-white/30 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400'
                   }`}
                 />
               </div>
-
-              {/* Error Message */}
-              {errorMessage && (
-                <div className="mt-2 flex items-center gap-1.5 text-xs text-rose-400 animate-in fade-in">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                  <span>{errorMessage}</span>
-                </div>
-              )}
             </div>
 
-            {/* Quick-Pick Preset Names for Fast Presentation */}
+            {/* Password Input Field */}
             <div>
-              <div className="text-[11px] font-medium text-slate-300 mb-2 flex items-center justify-between">
-                <span>Quick Demo Options:</span>
-                <span className="text-[10px] text-cyan-400">Click to fill</span>
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="demo-password-input" className="block text-xs font-semibold text-slate-200">
+                  Password <span className="text-rose-400">*</span>
+                </label>
+                <span className="text-[10px] text-slate-400 font-normal">Min 4 characters</span>
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {['demo.user@gmail.com', 'student@gmail.com', 'evaluator@gmail.com', 'teacher@gmail.com'].map((preset) => (
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  id="demo-password-input"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errorMessage) setErrorMessage(null);
+                  }}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  className={`w-full bg-slate-950/85 border rounded-xl py-2.5 pl-10 pr-10 text-sm text-slate-100 placeholder:text-slate-400 outline-none transition backdrop-blur-sm ${
+                    errorMessage && (!password.trim() || password.trim().length < 4)
+                      ? 'border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
+                      : 'border-white/15 hover:border-white/30 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-200 transition cursor-pointer"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4 text-slate-300" />
+                  ) : (
+                    <Eye className="w-4 h-4 text-slate-400 hover:text-cyan-400" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Remember Me & Auto-Fill Help */}
+            <div className="flex items-center justify-between text-xs pt-0.5">
+              <label className="flex items-center gap-2 cursor-pointer text-slate-300 select-none text-[11px]">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="rounded border-slate-700 text-cyan-500 focus:ring-cyan-500/20 bg-slate-900 w-3.5 h-3.5 accent-cyan-500"
+                />
+                <span>Remember me</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setPassword('demo1234')}
+                className="text-cyan-400 hover:text-cyan-300 text-[11px] font-medium transition cursor-pointer"
+              >
+                Auto-fill test password
+              </button>
+            </div>
+
+            {/* Error Message */}
+            {errorMessage && (
+              <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center gap-2 text-xs text-rose-300 animate-in fade-in">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            {/* Quick Demo Accounts Selection */}
+            <div className="pt-1">
+              <div className="text-[11px] font-medium text-slate-300 mb-2 flex items-center justify-between">
+                <span>Quick Demo Accounts:</span>
+                <span className="text-[10px] text-cyan-400">Click to auto-fill</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {PRESET_ACCOUNTS.map((preset) => (
                   <button
-                    key={preset}
+                    key={preset.gmail}
                     type="button"
-                    onClick={() => handleQuickSelect(preset)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer border ${
-                      gmail === preset
+                    onClick={() => handleQuickSelect(preset.gmail, preset.pass)}
+                    className={`px-2.5 py-1.5 rounded-xl text-left text-xs font-medium transition cursor-pointer border ${
+                      gmail === preset.gmail
                         ? 'bg-cyan-500/25 border-cyan-400 text-cyan-200 shadow-sm'
                         : 'bg-slate-900/80 border-white/10 text-slate-300 hover:bg-slate-800 hover:border-white/20 hover:text-white'
                     }`}
                   >
-                    {preset}
+                    <div className="truncate font-semibold text-slate-200">{preset.gmail}</div>
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 mt-0.5 font-mono">
+                      <span>pass: {preset.pass}</span>
+                      <span className="text-cyan-400/80">{preset.role}</span>
+                    </div>
                   </button>
                 ))}
               </div>
             </div>
 
+            {/* Info callout */}
             <div className="p-3 rounded-xl bg-slate-950/60 border border-white/10 text-[11px] text-slate-400 space-y-1">
               <div className="flex items-center gap-1.5 font-medium text-slate-200">
-                <Sparkles className="w-3 h-3 text-cyan-400" />
-                <span>Simulated Frontend Login</span>
+                <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Weatherwise Authentication</span>
               </div>
               <p>
-                No password required. Your Gmail will be remembered in localStorage and displayed across the app and Admin Dashboard.
+                Enter your Gmail and password to log in. Session and personal weather settings will be saved securely for this device.
               </p>
             </div>
 
